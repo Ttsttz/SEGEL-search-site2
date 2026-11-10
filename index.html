@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gene PDF Search</title>
+</head>
+<body>
+
+<h2>Gene PDF Search</h2>
+
+<input
+    type="text"
+    id="gene"
+    placeholder="Enter Gene Symbol">
+
+<button onclick="searchGene()">
+Search
+</button>
+
+<div id="results"></div>
+
+<script>
+
+let mapping = {};
+
+fetch("mapping.json")
+.then(response => response.json())
+.then(data => {
+    mapping = data;
+});
+
+function searchGene() {
+
+    const gene =
+        document.getElementById("gene")
+        .value
+        .trim()
+        .toUpperCase();
+
+    const resultsDiv =
+        document.getElementById("results");
+
+    resultsDiv.innerHTML = "";
+
+    if (!mapping[gene]) {
+        resultsDiv.innerHTML =
+          "<p>Gene not found.</p>";
+        return;
+    }
+
+    const probes = mapping[gene];
+
+    let html = `<h3>${gene}</h3>`;
+
+    probes.forEach(probe => {
+
+        html += `
+        <p>
+          ${probe}
+          <a href="pdf/${probe}.pdf"
+             target="_blank">
+             Open PDF
+          </a>
+        </p>
+        `;
+    });
+
+    resultsDiv.innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>

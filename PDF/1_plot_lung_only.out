@@ -1,0 +1,319 @@
+
+R version 3.0.2 (2013-09-25) -- "Frisbee Sailing"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin10.8.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> load(file="../COPD461.Rdata")
+> genename=paste(annot[,2],annot[,1], sep=" | ")
+> 
+> #############################
+> #boxplot
+> #############################
+> 
+> 
+> 
+> ####################
+> #for fold diff
+> ####################
+> set1=c("SmallAirway1","SmallAirway2","SmallAirway3","LargeAirway1","LargeAirway2","Trachea","Macrophage1","Macrophage2")
+> col1=c(rep("skyblue",3),"darkgreen","darkgreen","purple","red","red")
+> 
+> ###################
+> #for sex comparison
+> ###################
+> set2=c("SmallAirway2", "LargeAirway2", "Trachea","Macrophage2")
+> #set2=c("SmallAirway", "LargeAirway", "Treachea","AlveolarMacrophages")
+> col2=c("skyblue","darkgreen","purple","red")
+> 
+> ######################################
+> #for correlation and temporal pattern
+> ######################################
+> set3=c("SmallAirway1","SmallAirway2","LargeAirway1","LargeAirway2", "Trachea","Macrophage1","Macrophage2")
+> col3=c("skyblue","skyblue","darkgreen","darkgreen","purple","red","red")
+> 
+> 
+> #for(i in 1:length(genename))
+> #i=11669
+> for(i in 1:length(genename))
++ {
++ exp1=as.numeric(array[i,])
++ filename=paste(annot[i,1],".pdf",sep="")
++ pdf(file=filename,width=13,height=8)
++ 
++ ################################
++ #Figures 1  spatial 
++ ################################
++ all_fold=rep(0,length(set1))
++ names(all_fold)=set1
++ all_p=all_fold
++ 
++ explevel=matrix(0,2,length(set1))
++ colnames(explevel)=set1
++ rownames(explevel)=c("nonsmokers","smokers")
++ 
++ 	for(j in 1:length(set1))
++ 	{
++ 	id0=which(phen[,7]==set1[j]&phen[,4]==0)
++ 	id1=which(phen[,7]==set1[j]&phen[,4]==1)
++ 	sexp=exp1[id1]
++ 	nexp=exp1[id0]
++ 		
++ 	####t-test
++ 	all_fold[j]=mean(sexp)-mean(nexp)
++ 	all_p[j]=t.test(sexp,nexp)$p.value
++ 	explevel[1,j]=mean(nexp)
++ 	explevel[2,j]=mean(sexp)	
++ 	}
++ 
++ 
++ #######plot figure 1
++ par(mar=c(7,4,3,9))
++ barplot(explevel,beside=TRUE,col=c("darkgreen","red"),ylim=c(0,16),las=2,main="Gene expression of smokers and nonsmokers",ylab="Expression level (log2 transformed)",font.main=7)
++ mtext(paste("gene:",genename[i]),side=3,line=-0.2)
++ abline(v=9.5,col="grey",lty=3)
++ abline(v=15.5,col="grey",lty=3)
++ abline(v=18.5,col="grey",lty=3)
++ par(xpd=TRUE)
++ legend(24.5,15,c("Smoker","non-smoker"),col=c("red","darkgreen"),pch=c(15,15))
++ text(5,15,"Small Airway Epithelium",cex=0.65)
++ text(12.5,15,"Large Airway Epithelium",cex=0.65)
++ text(17,15,"Trachea \n Epithelium",cex=0.65)
++ text(21.5,15,"Alveolar Macrophage",cex=0.65)
++ text(0,-2,"Data set",cex=1.2)
++ # # text(24.5,5,paste("ANOVA P(data sets)=",set_p))
++ # text(24.5,4,paste("ANOVA P(smoking status)=",status_p))
++ 
++ position=c(2,5,8,11,14,17,20,23)
++ 	for(jj in 1:length(all_p))
++ 	{
++ 	text(position[jj],14,paste("p=",round(all_p[jj],4),sep=""),cex=0.8)
++ 	}
++ 
++ par(xpd=FALSE)
++ 
++ 
++ #################################
++ #Figure 2 ratio
++ #################################
++ par(mar=c(7,4,3,9))
++ barplot(all_fold,las=2,ylim=c(-2.5,2.5),main="Gene expression ratio (smokers/nonsmokers)",cex.names=0.9,ylab="log2(smokers/nonsmokers)",col=col1,font.main=7)
++ abline(h=0,lty=1)
++ abline(h=log2(1.5),lty=2)
++ abline(h=-log2(1.5),lty=2)
++ abline(v=3.7,col="grey",lty=3)
++ abline(v=6.1,col="grey",lty=3)
++ abline(v=7.3,col="grey",lty=3)
++ 
++ par(xpd=TRUE)
++ text(10.8,0.54,c("1.5fold (up-regulated \n in somkers)"),cex=0.7)
++ text(10.8,-0.63,c("1.5fold (down-regulated \n in smokers)"),cex=0.7)
++ text(10.8,-0.06,c("1 fold (same expression \n level)"),cex=0.7)
++ 
++ text(1.5,2.1,"Small Airway \n Epithelium",cex=0.8)
++ text(4.7,2.1,"Large Airway \n Epithelium",cex=0.8)
++ text(6.5,2.1,"Trachea \n Epithelium",cex=0.8)
++ text(8.5,2.1,"Alveolar \n Macrophage",cex=0.8)
++ text(-0.1,-3,"Data set",cex=1.2)
++ 
++ mtext(paste("gene:",genename[i]),side=3,line=-0.2)
++ legend(9.7,2.3,legend=c("SmallAirway Epithelium","LargeAirway Epithelium","Trachea Epithelium","Alveolar Macrophage","Peripheral Lung Tissue"),col=c("skyblue","darkgreen","purple","red","black"),pch=15,cex=0.6)
++ 
++ position=c(0.6,1.8,3.1,4.3,5.5,6.7,8,9.2)
++ 	for(jj in 1:length(all_p))
++ 	{
++ 	text(position[jj],-2.0,paste("p=",round(all_p[jj],4),sep=""),cex=0.8)
++ 	}
++ 
++ par(xpd=FALSE)
++ 
++ 
++ 
++ 
++ 
++ ##############################
++ #Figure3a male fold difference
++ ##############################
++ par(mfrow=c(1,2))
++ 
++ male_fold=rep(0,length(set2))
++ names(male_fold)=set2
++ male_p=male_fold
++ 
++ 	for(j in 1:length(set2))
++ 	{
++ 	id0=which(phen[,7]==set2[j]&phen[,4]==0&phen[,3]=="M")
++ 	id1=which(phen[,7]==set2[j]&phen[,4]==1&phen[,3]=="M")
++ 	male_fold[j]=mean(exp1[id1])-mean(exp1[id0])
++ 	male_p[j]=t.test(as.numeric(exp1[id1]),as.numeric(exp1[id0]))$p.value
++ 	}
++ 	
++ 
++ par(mar=c(7,4,3,9))
++ barplot(male_fold,las=2,ylim=c(-2.5,2.5),main="Gene expression ratio in Males",cex.names=0.9,ylab="log2(smokers/nonsmokers)",col=col2,font.main=7)
++ abline(h=log2(1.5),lty=2)
++ abline(h=-log2(1.5),lty=2)
++ abline(h=0,lty=1)
++ 
++ par(xpd=TRUE)
++ text(6,0.54,c("1.5fold (up-regulated \n in somkers)"),cex=0.65)
++ text(6,-0.63,c("1.5fold (down-regulated \n in smokers)"),cex=0.65)
++ text(6,-0.06,c("1 fold (same expression \n level)"),cex=0.65)
++ mtext(paste("gene:",genename[i]),side=3,line=-1)
++ legend(5.2,2,legend=c("SmallAirway Epithelium","LargeAirway Epithelium","Trachea Epithelium","Alveolar Macrophage"),col=c("skyblue","darkgreen","purple","red"),pch=15,cex=0.75)
++ 
++ position=c(0.6,1.8,3.1,4.3)
++ 	for(jj in 1:length(male_p))
++ 	{
++ 	text(position[jj],-2.0,paste("p=",round(male_p[jj],4),sep=""),cex=0.7)
++ 	}
++ par(xpd=FALSE)
++ 
++ 
++ ##################################
++ #Figure 3b female fold difference
++ ##################################
++ female_fold=rep(0,length(set2))
++ names(female_fold)=set2
++ female_p=female_fold
++ 
++ 	for(j in 1:length(set2))
++ 	{
++ 	id0=which(phen[,7]==set2[j]&phen[,4]==0&phen[,3]=="F")
++ 	id1=which(phen[,7]==set2[j]&phen[,4]==1&phen[,3]=="F")
++ 	female_fold[j]=mean(exp1[id1])-mean(exp1[id0])
++ 	female_p[j]=t.test(as.numeric(exp1[id1]),as.numeric(exp1[id0]))$p.value
++ 	}
++ 	
++ par(xpd=FALSE)
++ par(mar=c(7,4,3,9))
++ barplot(female_fold,las=2,ylim=c(-2.5,2.5),main="Gene expression ratio in Females",cex.names=0.9,ylab="log2(smokers/nonsmokers)",col=col2,font.main=7)
++ abline(h=log2(1.5),lty=2)
++ abline(h=-log2(1.5),lty=2)
++ abline(h=0,lty=1)
++ 
++ par(xpd=TRUE)
++ text(6,0.54,c("1.5fold (up-regulated \n in somkers)"),cex=0.65)
++ text(6,-0.63,c("1.5fold (down-regulated \n in smokers)"),cex=0.65)
++ text(6,-0.06,c("1 fold (same expression \n level)"),cex=0.65)
++ mtext(paste("gene:",genename[i]),side=3,line=-1)
++ legend(5.2,2,legend=c("SmallAirway Epithelium","LargeAirway Epithelium","Trachea Epithelium","Alveolar Macrophage"),col=c("skyblue","darkgreen","purple","red"),pch=15,cex=0.75)
++ 
++ position=c(0.6,1.8,3.1,4.3)
++ 	for(jj in 1:length(female_p))
++ 	{
++ 	text(position[jj],-2.0,paste("p=",round(female_p[jj],4),sep=""),cex=0.7)
++ 	}
++ 
++ par(xpd=FALSE)
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ ###################################
++ #Figure 4 Expression ~ Age 
++ ###################################
++ all_p1=all_p[-3]
++ 
++ par(mfrow=c(3,3))
++ 	for(j in 1:length(set3))
++ 	{
++ 	id0=which(phen[,7]==set3[j]&phen[,4]==0)
++ 	id1=which(phen[,7]==set3[j]&phen[,4]==1)
++ 	age0=phen[id0,2]
++ 	exp00=exp1[id0]
++ 	id2=order(age0)
++ 	plot(age0[id2],exp00[id2],col="darkgreen",ylim=c(min(exp1)-1,max(exp1)+1),xlim=c(21,62),pch=1,main=paste("set: ", set3[j]," (p=",round(all_p1[j],4),")\n", genename[i],sep=""),xlab="Age",ylab="Expression level (log2)",font.main=7)
++ 	
++ 	age1=phen[id1,2]
++ 	exp11=exp1[id1]
++ 	id3=order(age1)	
++ 	points(age1[id3],exp11[id3],col="red",pch=19)
++ 	
++ 	y1 <- smooth.spline(age0[id2],exp00[id2],df=3)
++     y2 <- smooth.spline(age1[id3],exp11[id3],df=3)
++ 	lines(y1,lwd=3,col="darkgreen")
++ 	lines(y2,lwd=3,col="red")
++ #	mtext(paste("gene:",genename[i]),side=3,line=-1.5,adj=1)
++ 	par(xpd=TRUE)
++ 	legend(66,max(exp1),c("Smoker","non-smoker"),col=c("red","darkgreen"),pch=c(19,1),cex=0.75)
++ 	par(xpd=FALSE)
++ 	}
++ 
++ 	par(xpd=TRUE)
++ 	legend(66,max(exp1),c("Smoker","non-smoker"),col=c("red","darkgreen"),pch=c(19,1),cex=0.75)
++ 	par(xpd=FALSE)
++ 
++ 
++ 
++ 
++ 
++ ###################################
++ #Figure 5 pack calculation
++ ###################################
++ par(mfrow=c(1,1))
++ 
++ all_cor=rep(0,length(set3))
++ all_p2=all_cor
++ names(all_cor)=set3
++ 
++ 	for(j in 1:length(set3))
++ 	{
++ 	id0=which(phen[,7]==set3[j])
++ 	all_cor[j]=cor.test(exp1[id0],phen[id0,5])$estimate
++ 	all_p2[j]=cor.test(exp1[id0],phen[id0,5])$p.value
++ 	}
++ 
++ par(mar=c(7,4,3,9))
++ barplot(all_cor,las=2,ylim=c(-1.2,1.2),main="Corrleation between gene expression and tobacco exposure",cex.names=0.9,ylab="Correlation coefficient (gene expression ~ packs per year)",col=col3,font.main=8)
++ abline(h=0.3,lty=2)
++ abline(h=-0.3,lty=2)
++ abline(h=0,lty=1)
++ 
++ abline(v=2.5,col="grey",lty=3)
++ abline(v=4.9,col="grey",lty=3)
++ abline(v=6.1,col="grey",lty=3)
++ 
++ par(xpd=TRUE)
++ mtext(paste("gene:",genename[i]),side=3,line=-1)
++ legend(8.6,1,legend=c("SmallAirway Epithelium","LargeAirway Epithelium","Trachea Epithelium","Alveolar Macrophage"),col=c("skyblue","darkgreen","purple","red"),pch=15,cex=0.75)
++ 
++ text(9,0.3,c("cor = 0.3"),cex=0.8)
++ text(9,-0.3,c("cor = -0.3"),cex=0.8)
++ 
++ text(1.5,1.0,"Small Airway \n Epithelium",cex=0.8)
++ text(3.5,1.0,"Large Airway \n Epithelium",cex=0.8)
++ text(5.5,1.0,"Trachea \n Epithelium",cex=0.8)
++ text(7,1.0,"Alveolar \n Macrophage",cex=0.8)
++ text(-0.1,-1.5,"Data set",cex=1.2)
++ 
++ position=c(0.6,1.8,3.1,4.3,5.6,6.7,8)
++ 	for(jj in 1:length(all_p2))
++ 	{
++ 	text(position[jj],-1.0,paste("p=",round(all_p2[jj],4),sep=""),cex=0.8)
++ 	}
++ 
++ par(xpd=FALSE)
++ 
++ 
++ 
++ dev.off()
++ 
++ }
+> 
