@@ -52,14 +52,87 @@ to retrieve the corresponding microarrays.
 
 </div>
 
-<input
-    type="text"
-    id="gene"
-    placeholder="Enter Gene Symbol">
+function searchGene() {
 
-<button onclick="searchGene()">
-Search
-</button>
+    const input = document.getElementById("gene").value;
+
+    const resultsDiv = document.getElementById("results");
+
+    resultsDiv.innerHTML = "";
+
+    if (!mappingLoaded) {
+        resultsDiv.innerHTML =
+            "<p>Database is still loading. Please wait.</p>";
+        return;
+    }
+
+    // Split genes using semicolon
+    const genes = [...new Set(
+        input.split(";")
+        .map(gene => gene.trim().toUpperCase())
+        .filter(gene => gene !== "")
+    )];
+
+    if (genes.length === 0) {
+        resultsDiv.innerHTML =
+            "<p>Please enter at least one gene symbol.</p>";
+        return;
+    }
+
+    let html = "";
+
+    let foundCount = 0;
+    let missingGenes = [];
+
+    genes.forEach(gene => {
+
+        if (!mapping[gene]) {
+            missingGenes.push(gene);
+            return;
+        }
+
+        foundCount++;
+
+        html += `<h3>${gene}</h3>`;
+
+        mapping[gene].forEach(probe => {
+
+            const pdfURL =
+                "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
+                + encodeURIComponent(probe)
+                + ".pdf";
+
+            html += `
+                <p>
+                    ${probe}
+                    <a href="${pdfURL}" target="_blank">
+                        Open PDF
+                    </a>
+                </p>
+            `;
+        });
+    });
+
+    // Display missing genes
+    if (missingGenes.length > 0) {
+
+        html += `
+            <h3>Genes not found</h3>
+            <p>${missingGenes.join(", ")}</p>
+        `;
+    }
+
+    // Display search summary
+    html = `
+        <p>
+            Searched: ${genes.length} genes |
+            Found: ${foundCount} |
+            Not found: ${missingGenes.length}
+        </p>
+    ` + html;
+
+    resultsDiv.innerHTML = html;
+}
 
 <div id="results"></div>
 
