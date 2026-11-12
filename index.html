@@ -68,10 +68,9 @@ function searchGene() {
 
     mapping[gene].forEach(probe => {
 
-        const pdfURL = new URL(
-            "PDF/" + encodeURIComponent(probe) + ".pdf",
-            baseURL
-        ).href;
+    const pdfURL =
+        "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
+        + probe + ".pdf";
 
         html += `
             <p>
