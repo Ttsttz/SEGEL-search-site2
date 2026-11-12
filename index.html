@@ -52,6 +52,8 @@ to retrieve the corresponding microarrays.
 
 </div>
 
+<script>
+
 function searchGene() {
 
     const input = document.getElementById("gene").value;
@@ -136,7 +138,6 @@ function searchGene() {
 
 <div id="results"></div>
 
-<script>
 
 let mapping = {};
 let mappingLoaded = false;
@@ -163,8 +164,7 @@ fetch(new URL("mapping.json", baseURL))
 
 function searchGene() {
 
-    const gene = document.getElementById("gene")
-        .value.trim().toUpperCase();
+    const input = document.getElementById("gene").value;
 
     const resultsDiv = document.getElementById("results");
 
@@ -176,28 +176,68 @@ function searchGene() {
         return;
     }
 
-    if (!mapping[gene]) {
-        resultsDiv.innerHTML = "<p>Gene not found.</p>";
+    // Separate genes using semicolons
+    const genes = [...new Set(
+        input.split(";")
+        .map(g => g.trim().toUpperCase())
+        .filter(g => g !== "")
+    )];
+
+    if (genes.length === 0) {
+        resultsDiv.innerHTML =
+            "<p>Please enter at least one gene.</p>";
         return;
     }
 
-    let html = `<h3>${gene}</h3>`;
+    let html = "";
+    let foundCount = 0;
+    let missingGenes = [];
 
-    mapping[gene].forEach(probe => {
+    genes.forEach(gene => {
 
-    const pdfURL =
-        "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
-        + probe + ".pdf";
+        if (!mapping[gene]) {
+            missingGenes.push(gene);
+            return;
+        }
 
-        html += `
-            <p>
-                ${probe}
-                <a href="${pdfURL}" target="_blank">
-                    Open PDF
-                </a>
-            </p>
-        `;
+        foundCount++;
+
+        html += `<h3>${gene}</h3>`;
+
+        mapping[gene].forEach(probe => {
+
+            const pdfURL =
+                "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
+                + encodeURIComponent(probe) + ".pdf";
+
+            html += `
+                <p>
+                    ${probe}
+                    <a href="${pdfURL}" target="_blank">
+                        Open PDF
+                    </a>
+                </p>
+            `;
+        });
+
     });
+
+    // Search summary
+    html = `
+        <p>
+            Genes searched: ${genes.length}<br>
+            Genes found: ${foundCount}<br>
+            Genes not found: ${missingGenes.length}
+        </p>
+    ` + html;
+
+    // Report genes not found
+    if (missingGenes.length > 0) {
+        html += `
+            <h3>Genes not found</h3>
+            <p>${missingGenes.join(", ")}</p>
+        `;
+    }
 
     resultsDiv.innerHTML = html;
 }
