@@ -22,46 +22,64 @@ Search
 <script>
 
 let mapping = {};
+let mappingLoaded = false;
 
-fetch("mapping.json")
-.then(response => response.json())
+const baseURL = new URL(".", window.location.href);
+
+// Load gene database
+fetch(new URL("mapping.json", baseURL))
+.then(response => {
+    if (!response.ok) {
+        throw new Error("mapping.json could not be found");
+    }
+    return response.json();
+})
 .then(data => {
     mapping = data;
+    mappingLoaded = true;
+    console.log("Gene database loaded successfully");
+})
+.catch(error => {
+    document.getElementById("results").innerHTML =
+        "<p>Error loading database: " + error.message + "</p>";
 });
 
 function searchGene() {
 
-    const gene =
-        document.getElementById("gene")
-        .value
-        .trim()
-        .toUpperCase();
+    const gene = document.getElementById("gene")
+        .value.trim().toUpperCase();
 
-    const resultsDiv =
-        document.getElementById("results");
+    const resultsDiv = document.getElementById("results");
 
     resultsDiv.innerHTML = "";
 
-    if (!mapping[gene]) {
+    if (!mappingLoaded) {
         resultsDiv.innerHTML =
-          "<p>Gene not found.</p>";
+            "<p>Database is still loading. Please wait.</p>";
         return;
     }
 
-    const probes = mapping[gene];
+    if (!mapping[gene]) {
+        resultsDiv.innerHTML = "<p>Gene not found.</p>";
+        return;
+    }
 
     let html = `<h3>${gene}</h3>`;
 
-    probes.forEach(probe => {
+    mapping[gene].forEach(probe => {
+
+        const pdfURL = new URL(
+            "PDF/" + encodeURIComponent(probe) + ".pdf",
+            baseURL
+        ).href;
 
         html += `
-        <p>
-          ${probe}
-          <a href="PDF/${probe}.pdf"
-             target="_blank">
-             Open PDF
-          </a>
-        </p>
+            <p>
+                ${probe}
+                <a href="${pdfURL}" target="_blank">
+                    Open PDF
+                </a>
+            </p>
         `;
     });
 
