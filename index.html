@@ -54,6 +54,30 @@ to retrieve the corresponding microarrays.
 
 <script>
 
+
+<!-- Search interface -->
+
+<h3>Search Gene Symbols</h3>
+
+<input
+    type="text"
+    id="gene"
+    placeholder="Enter genes (e.g. PAX8; DDR1; TP53)"
+    style="width:350px; padding:10px;"
+>
+
+<button onclick="searchGene()">
+    Search
+</button>
+
+<!-- Search results -->
+
+<div id="results"></div>
+
+<!-- JavaScript -->
+
+<script>
+
 function searchGene() {
 
     const input = document.getElementById("gene").value;
@@ -68,7 +92,6 @@ function searchGene() {
         return;
     }
 
-    // Split genes using semicolon
     const genes = [...new Set(
         input.split(";")
         .map(gene => gene.trim().toUpperCase())
@@ -82,7 +105,6 @@ function searchGene() {
     }
 
     let html = "";
-
     let foundCount = 0;
     let missingGenes = [];
 
@@ -115,16 +137,6 @@ function searchGene() {
         });
     });
 
-    // Display missing genes
-    if (missingGenes.length > 0) {
-
-        html += `
-            <h3>Genes not found</h3>
-            <p>${missingGenes.join(", ")}</p>
-        `;
-    }
-
-    // Display search summary
     html = `
         <p>
             Searched: ${genes.length} genes |
@@ -133,8 +145,18 @@ function searchGene() {
         </p>
     ` + html;
 
+    if (missingGenes.length > 0) {
+        html += `
+            <h3>Genes not found</h3>
+            <p>${missingGenes.join(", ")}</p>
+        `;
+    }
+
     resultsDiv.innerHTML = html;
 }
+
+</script>
+
 
 <div id="results"></div>
 
