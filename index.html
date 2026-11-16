@@ -123,10 +123,8 @@ let mapping = {};
 let mappingLoaded = false;
 let currentMatches = []; // Stores { gene, probe, url } for Download All
 
-const baseURL = new URL(".", window.location.href);
-
 // Load gene database
-fetch(new URL("mapping.json", baseURL))
+fetch("mapping.json")
 .then(response => {
     if (!response.ok) {
         throw new Error("mapping.json could not be found");
@@ -136,7 +134,7 @@ fetch(new URL("mapping.json", baseURL))
 .then(data => {
     mapping = data;
     mappingLoaded = true;
-    console.log("Gene database loaded successfully");
+    console.log("Gene database loaded successfully. Total genes:", Object.keys(mapping).length);
 })
 .catch(error => {
     document.getElementById("results").innerHTML =
@@ -145,10 +143,11 @@ fetch(new URL("mapping.json", baseURL))
 
 function searchGene() {
     const input = document.getElementById("gene").value;
-    const fuzzyEnabled = document.getElementById("fuzzySearch").checked;
+    const fuzzyCheckbox = document.getElementById("fuzzySearch");
+    const fuzzyEnabled = fuzzyCheckbox ? fuzzyCheckbox.checked : false;
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "";
-    currentMatches = []; // Reset previous matches
+    currentMatches = [];
 
     if (!mappingLoaded) {
         resultsDiv.innerHTML =
@@ -175,17 +174,17 @@ function searchGene() {
     let targetGenes = [];
     let fuzzyNotice = "";
 
+    const allKeys = Object.keys(mapping);
+
     // Apply fuzzy matching ONLY when checked and a single gene is entered
     if (fuzzyEnabled && inputGenes.length === 1) {
         const query = inputGenes[0];
-        const allKeys = Object.keys(mapping);
 
         targetGenes = allKeys
-            .filter(key => key.toUpperCase().includes(query))
+            .filter(key => key.trim().toUpperCase().includes(query))
             .sort((a, b) => {
-                const aUp = a.toUpperCase();
-                const bUp = b.toUpperCase();
-                // Exact match first, then prefix match, then alphabetical
+                const aUp = a.trim().toUpperCase();
+                const bUp = b.trim().toUpperCase();
                 if (aUp === query) return -1;
                 if (bUp === query) return 1;
                 const aStarts = aUp.startsWith(query);
@@ -208,10 +207,10 @@ function searchGene() {
     }
 
     targetGenes.forEach(gene => {
-        // Look up exact key (or case-insensitive fallback if keys in mapping.json vary)
-        const matchedKey = mapping[gene]
+        const normalizedTarget = gene.trim().toUpperCase();
+        const matchedKey = mapping[gene] !== undefined
             ? gene
-            : Object.keys(mapping).find(k => k.toUpperCase() === gene);
+            : allKeys.find(k => k.trim().toUpperCase() === normalizedTarget);
 
         if (!matchedKey) {
             missingGenes.push(gene);
@@ -219,23 +218,26 @@ function searchGene() {
         }
 
         foundCount++;
-        html += `<h3>${matchedKey}</h3>`;
+        const displayGene = matchedKey.trim();
+        html += `<h3>${displayGene}</h3>`;
 
-        mapping[matchedKey].forEach(probe => {
-            const pdfURL = new URL(
-                "PDF/" + encodeURIComponent(probe) + ".pdf",
-                baseURL
-            ).href;
+        // Handle both single probe strings and arrays of probes
+        const rawProbes = mapping[matchedKey];
+        const probes = Array.isArray(rawProbes) ? rawProbes : [rawProbes];
+
+        probes.forEach(probe => {
+            const cleanProbe = String(probe).trim();
+            const pdfURL = "PDF/" + encodeURIComponent(cleanProbe) + ".pdf";
 
             currentMatches.push({
-                gene: matchedKey,
-                probe: probe,
+                gene: displayGene,
+                probe: cleanProbe,
                 url: pdfURL
             });
 
             html += `
                 <p>
-                    ${probe}
+                    ${cleanProbe}
                     <a href="${pdfURL}" target="_blank">
                         Open PDF
                     </a>
@@ -255,7 +257,6 @@ function searchGene() {
         `;
     }
 
-    // Search summary
     const searchedCount = (fuzzyEnabled && inputGenes.length === 1)
         ? targetGenes.length || 1
         : inputGenes.length;
@@ -269,7 +270,6 @@ function searchGene() {
         ${downloadButtonHtml}
     ` + html;
 
-    // Report genes not found
     if (missingGenes.length > 0) {
         html += `
             <h3>Genes not found</h3>
@@ -300,7 +300,6 @@ async function downloadAllPDFs() {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const blob = await response.blob();
 
-            // Place each PDF inside a subfolder named after its gene symbol
             const geneFolder = rootFolder.folder(item.gene);
             geneFolder.file(`${item.probe}.pdf`, blob);
         } catch (err) {
@@ -335,7 +334,6 @@ async function downloadAllPDFs() {
     }
 }
 
-// Trigger search when pressing Enter inside the input box
 document.getElementById("gene").addEventListener("keydown", function(event) {
     if (event.key === "Enter") {
         event.preventDefault();
