@@ -28,6 +28,23 @@ body {
     color: #24577a;
 }
 
+.search-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fuzzy-label {
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
 .download-btn {
     background-color: #3975a8;
     color: white;
@@ -58,18 +75,18 @@ body {
     <h3>About this database</h3>
     <p>
     SEGEL (Smoking Effects on Gene Expression of Lung) contains eight public expression microarray data sets from trachea epithelial cells, large airway epithelial cells, small airway epithelial cells, and alveolar macrophage.
-    The microarray data sets visualizes the effects of smoking on gene expression in different human cells in the lungs. The database supports genes associated with
+    The microarray data sets visualize the effects of smoking on gene expression in different human cells in the lungs. The database supports genes associated with
     multiple probe IDs, allowing users to retrieve
     all available documents for a given gene.
     </p>
     <p>
-    <strong>How to use:</strong> 
+    <strong>How to use:</strong>
     </p>
     <p>
-    Single gene search: PAX8
+    Single gene search: PAX8 (enable <em>Fuzzy search</em> to match partial names like DUOX &rarr; DUOX1, DUOX2)
     </p>
     <p>
-    Multiple gene search: PAX8; DDR1; TP53
+    Multiple gene search: PAX8; DDR1; TP53 (exact match only)
     </p>
     <p style="margin-bottom: 0;">
     <strong>Reference:</strong> <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0128326" target="_blank" rel="noopener noreferrer">SEGEL: A Web Server for Visualization of Smoking Effects on Human Lung Gene Expression</a>
@@ -79,16 +96,23 @@ body {
 <!-- Search interface -->
 <h3>Search Gene Symbols</h3>
 
-<input
-    type="text"
-    id="gene"
-    placeholder="Enter genes (e.g. PAX8; DDR1; TP53)"
-    style="width:350px; padding:10px;"
->
+<div class="search-controls">
+    <input
+        type="text"
+        id="gene"
+        placeholder="Enter genes (e.g. PAX8; DDR1; TP53)"
+        style="width:350px; padding:10px;"
+    >
 
-<button onclick="searchGene()" style="padding:10px 15px; cursor:pointer;">
-    Search
-</button>
+    <button onclick="searchGene()" style="padding:10px 15px; cursor:pointer;">
+        Search
+    </button>
+
+    <label class="fuzzy-label" title="Matches partial gene names when searching a single gene">
+        <input type="checkbox" id="fuzzySearch">
+        Fuzzy search (single gene only)
+    </label>
+</div>
 
 <!-- Search results -->
 <div id="results"></div>
@@ -121,6 +145,7 @@ fetch(new URL("mapping.json", baseURL))
 
 function searchGene() {
     const input = document.getElementById("gene").value;
+    const fuzzyEnabled = document.getElementById("fuzzySearch").checked;
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "";
     currentMatches = []; // Reset previous matches
@@ -132,13 +157,13 @@ function searchGene() {
     }
 
     // Separate genes using semicolons
-    const genes = [...new Set(
+    const inputGenes = [...new Set(
         input.split(";")
         .map(g => g.trim().toUpperCase())
         .filter(g => g !== "")
     )];
 
-    if (genes.length === 0) {
+    if (inputGenes.length === 0) {
         resultsDiv.innerHTML =
             "<p>Please enter at least one gene.</p>";
         return;
@@ -147,23 +172,63 @@ function searchGene() {
     let html = "";
     let foundCount = 0;
     let missingGenes = [];
+    let targetGenes = [];
+    let fuzzyNotice = "";
 
-    genes.forEach(gene => {
-        if (!mapping[gene]) {
+    // Apply fuzzy matching ONLY when checked and a single gene is entered
+    if (fuzzyEnabled && inputGenes.length === 1) {
+        const query = inputGenes[0];
+        const allKeys = Object.keys(mapping);
+
+        targetGenes = allKeys
+            .filter(key => key.toUpperCase().includes(query))
+            .sort((a, b) => {
+                const aUp = a.toUpperCase();
+                const bUp = b.toUpperCase();
+                // Exact match first, then prefix match, then alphabetical
+                if (aUp === query) return -1;
+                if (bUp === query) return 1;
+                const aStarts = aUp.startsWith(query);
+                const bStarts = bUp.startsWith(query);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                return aUp.localeCompare(bUp);
+            });
+
+        if (targetGenes.length === 0) {
+            missingGenes.push(query);
+        } else {
+            fuzzyNotice = `<br><em>Fuzzy search matched ${targetGenes.length} gene(s) for "${query}"</em>`;
+        }
+    } else {
+        targetGenes = inputGenes;
+        if (fuzzyEnabled && inputGenes.length > 1) {
+            fuzzyNotice = `<br><em>Note: Fuzzy search is disabled when searching multiple genes.</em>`;
+        }
+    }
+
+    targetGenes.forEach(gene => {
+        // Look up exact key (or case-insensitive fallback if keys in mapping.json vary)
+        const matchedKey = mapping[gene]
+            ? gene
+            : Object.keys(mapping).find(k => k.toUpperCase() === gene);
+
+        if (!matchedKey) {
             missingGenes.push(gene);
             return;
         }
 
         foundCount++;
-        html += `<h3>${gene}</h3>`;
+        html += `<h3>${matchedKey}</h3>`;
 
-        mapping[gene].forEach(probe => {
-            const pdfURL =
-                "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
-                + encodeURIComponent(probe) + ".pdf";
+        mapping[matchedKey].forEach(probe => {
+            const pdfURL = new URL(
+                "PDF/" + encodeURIComponent(probe) + ".pdf",
+                baseURL
+            ).href;
 
             currentMatches.push({
-                gene: gene,
+                gene: matchedKey,
                 probe: probe,
                 url: pdfURL
             });
@@ -191,11 +256,15 @@ function searchGene() {
     }
 
     // Search summary
+    const searchedCount = (fuzzyEnabled && inputGenes.length === 1)
+        ? targetGenes.length || 1
+        : inputGenes.length;
+
     html = `
         <p>
-            Genes searched: ${genes.length}<br>
+            Genes searched: ${searchedCount}<br>
             Genes found: ${foundCount}<br>
-            Genes not found: ${missingGenes.length}
+            Genes not found: ${missingGenes.length}${fuzzyNotice}
         </p>
         ${downloadButtonHtml}
     ` + html;
