@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>SEGEL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 
 body {
@@ -25,6 +26,26 @@ body {
 .summary h3 {
     margin-top: 0;
     color: #24577a;
+}
+
+.download-btn {
+    background-color: #3975a8;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0 20px 0;
+}
+
+.download-btn:hover {
+    background-color: #24577a;
+}
+
+.download-btn:disabled {
+    background-color: #99b8d4;
+    cursor: not-allowed;
 }
 
 </style>
@@ -69,6 +90,7 @@ body {
 <script>
 let mapping = {};
 let mappingLoaded = false;
+let currentMatches = []; // Stores { gene, probe, url } for Download All
 
 const baseURL = new URL(".", window.location.href);
 
@@ -94,6 +116,7 @@ function searchGene() {
     const input = document.getElementById("gene").value;
     const resultsDiv = document.getElementById("results");
     resultsDiv.innerHTML = "";
+    currentMatches = []; // Reset previous matches
 
     if (!mappingLoaded) {
         resultsDiv.innerHTML =
@@ -132,6 +155,12 @@ function searchGene() {
                 "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
                 + encodeURIComponent(probe) + ".pdf";
 
+            currentMatches.push({
+                gene: gene,
+                probe: probe,
+                url: pdfURL
+            });
+
             html += `
                 <p>
                     ${probe}
@@ -143,6 +172,17 @@ function searchGene() {
         });
     });
 
+    // Add Download All button if at least one PDF was found
+    let downloadButtonHtml = "";
+    if (currentMatches.length > 0) {
+        downloadButtonHtml = `
+            <button id="downloadAllBtn" class="download-btn" onclick="downloadAllPDFs()">
+                Download All PDFs (${currentMatches.length} files as ZIP)
+            </button>
+            <span id="downloadStatus" style="margin-left: 10px; font-size: 14px; color: #555;"></span>
+        `;
+    }
+
     // Search summary
     html = `
         <p>
@@ -150,6 +190,7 @@ function searchGene() {
             Genes found: ${foundCount}<br>
             Genes not found: ${missingGenes.length}
         </p>
+        ${downloadButtonHtml}
     ` + html;
 
     // Report genes not found
@@ -161,6 +202,61 @@ function searchGene() {
     }
 
     resultsDiv.innerHTML = html;
+}
+
+async function downloadAllPDFs() {
+    if (currentMatches.length === 0) return;
+
+    const btn = document.getElementById("downloadAllBtn");
+    const status = document.getElementById("downloadStatus");
+    btn.disabled = true;
+
+    const zip = new JSZip();
+    const rootFolder = zip.folder("SEGEL_PDFs");
+    let completed = 0;
+    let failed = 0;
+
+    status.textContent = `Fetching 0 of ${currentMatches.length} PDFs...`;
+
+    for (const item of currentMatches) {
+        try {
+            const response = await fetch(item.url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+
+            // Place each PDF inside a subfolder named after its gene symbol
+            const geneFolder = rootFolder.folder(item.gene);
+            geneFolder.file(`${item.probe}.pdf`, blob);
+        } catch (err) {
+            console.error(`Failed to fetch ${item.probe}.pdf:`, err);
+            failed++;
+        }
+
+        completed++;
+        status.textContent = `Fetching ${completed} of ${currentMatches.length} PDFs...`;
+    }
+
+    status.textContent = "Creating ZIP folder...";
+
+    try {
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = "SEGEL_PDFs.zip";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+        status.textContent = failed > 0
+            ? `Done! (${failed} file(s) could not be retrieved)`
+            : "Download complete!";
+    } catch (err) {
+        status.textContent = "Error creating ZIP file.";
+        console.error(err);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // Trigger search when pressing Enter inside the input box
