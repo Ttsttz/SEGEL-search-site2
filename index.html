@@ -34,29 +34,21 @@ body {
 <h2>SEGEL</h2>
 
 <div class="summary">
-
-<h3>About this database</h3>
-
-<p>
-SEGEL (Smoking Effects on Gene Expression of Lung) contains eight public expression microarray data sets from trachea epithelial cells, large airway epithelial cells, small airway epithelial cells, and alveolar macrophage.
-The microarray data sets visualizes the effects of smoking on gene expression in different human cells in the lungs. The database supports genes associated with
-multiple probe IDs, allowing users to retrieve
-all available documents for a given gene.
-</p>
-
-<p>
-<strong>How to use:</strong> Enter a gene symbol
-(e.g., PAX8, DDR1, or TP53)
-to retrieve the corresponding microarrays.
-</p>
-
+    <h3>About this database</h3>
+    <p>
+    SEGEL (Smoking Effects on Gene Expression of Lung) contains eight public expression microarray data sets from trachea epithelial cells, large airway epithelial cells, small airway epithelial cells, and alveolar macrophage.
+    The microarray data sets visualizes the effects of smoking on gene expression in different human cells in the lungs. The database supports genes associated with
+    multiple probe IDs, allowing users to retrieve
+    all available documents for a given gene.
+    </p>
+    <p>
+    <strong>How to use:</strong> Enter a gene symbol
+    (e.g., PAX8, DDR1, or TP53)
+    to retrieve the corresponding microarrays.
+    </p>
 </div>
 
-<script>
-
-
 <!-- Search interface -->
-
 <h3>Search Gene Symbols</h3>
 
 <input
@@ -66,98 +58,15 @@ to retrieve the corresponding microarrays.
     style="width:350px; padding:10px;"
 >
 
-<button onclick="searchGene()">
+<button onclick="searchGene()" style="padding:10px 15px; cursor:pointer;">
     Search
 </button>
 
 <!-- Search results -->
-
 <div id="results"></div>
 
 <!-- JavaScript -->
-
 <script>
-
-function searchGene() {
-
-    const input = document.getElementById("gene").value;
-
-    const resultsDiv = document.getElementById("results");
-
-    resultsDiv.innerHTML = "";
-
-    if (!mappingLoaded) {
-        resultsDiv.innerHTML =
-            "<p>Database is still loading. Please wait.</p>";
-        return;
-    }
-
-    const genes = [...new Set(
-        input.split(";")
-        .map(gene => gene.trim().toUpperCase())
-        .filter(gene => gene !== "")
-    )];
-
-    if (genes.length === 0) {
-        resultsDiv.innerHTML =
-            "<p>Please enter at least one gene symbol.</p>";
-        return;
-    }
-
-    let html = "";
-    let foundCount = 0;
-    let missingGenes = [];
-
-    genes.forEach(gene => {
-
-        if (!mapping[gene]) {
-            missingGenes.push(gene);
-            return;
-        }
-
-        foundCount++;
-
-        html += `<h3>${gene}</h3>`;
-
-        mapping[gene].forEach(probe => {
-
-            const pdfURL =
-                "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
-                + encodeURIComponent(probe)
-                + ".pdf";
-
-            html += `
-                <p>
-                    ${probe}
-                    <a href="${pdfURL}" target="_blank">
-                        Open PDF
-                    </a>
-                </p>
-            `;
-        });
-    });
-
-    html = `
-        <p>
-            Searched: ${genes.length} genes |
-            Found: ${foundCount} |
-            Not found: ${missingGenes.length}
-        </p>
-    ` + html;
-
-    if (missingGenes.length > 0) {
-        html += `
-            <h3>Genes not found</h3>
-            <p>${missingGenes.join(", ")}</p>
-        `;
-    }
-
-    resultsDiv.innerHTML = html;
-}
-
-<div id="results"></div>
-
-
 let mapping = {};
 let mappingLoaded = false;
 
@@ -182,11 +91,8 @@ fetch(new URL("mapping.json", baseURL))
 });
 
 function searchGene() {
-
     const input = document.getElementById("gene").value;
-
     const resultsDiv = document.getElementById("results");
-
     resultsDiv.innerHTML = "";
 
     if (!mappingLoaded) {
@@ -213,18 +119,15 @@ function searchGene() {
     let missingGenes = [];
 
     genes.forEach(gene => {
-
         if (!mapping[gene]) {
             missingGenes.push(gene);
             return;
         }
 
         foundCount++;
-
         html += `<h3>${gene}</h3>`;
 
         mapping[gene].forEach(probe => {
-
             const pdfURL =
                 "https://ttsttz.github.io/SEGEL-search-site2/PDF/"
                 + encodeURIComponent(probe) + ".pdf";
@@ -238,7 +141,6 @@ function searchGene() {
                 </p>
             `;
         });
-
     });
 
     // Search summary
@@ -260,7 +162,6 @@ function searchGene() {
 
     resultsDiv.innerHTML = html;
 }
-
 </script>
 
 </body>
